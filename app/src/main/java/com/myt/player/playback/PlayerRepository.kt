@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /** Snapshot of what the player is doing right now. */
@@ -153,29 +154,36 @@ class PlayerRepository(private val context: Context) {
 
     /** Loads a queue of tracks and starts playing from [startIndex]. */
     fun playQueue(tracks: List<Track>, startIndex: Int) {
-        val c = controller ?: return
         if (tracks.isEmpty()) return
-
-        val items = tracks.map { track ->
-            mediaIdToTrack[track.id] = track
-            MediaItem.Builder()
-                .setMediaId(track.id)
-                .setUri(Uri.parse(track.uri))
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(track.title)
-                        .setArtist(track.artist)
-                        .setAlbumTitle(track.album)
-                        .setArtworkData(loadArtworkBytes(track), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                        .build()
-                )
-                .build()
+        scope.launch {
+            // Build everything (and fetch artwork bytes) off the main thread.
+            val items = withContext(Dispatchers.IO) {
+                tracks.map { track ->
+                    mediaIdToTrack[track.id] = track
+                    buildMediaItem(track)
+                }
+            }
+            val c = controller ?: return@launch
+            val start = startIndex.coerceIn(0, items.lastIndex)
+            c.setMediaItems(items, start, 0L)
+            c.prepare()
+            c.play()
         }
-        val start = startIndex.coerceIn(0, items.lastIndex)
-        c.setMediaItems(items, start, 0L)
-        c.prepare()
-        c.play()
     }
+
+    private fun buildMediaItem(track: Track): MediaItem =
+        MediaItem.Builder()
+            .setMediaId(track.id)
+            .setUri(Uri.parse(track.uri))
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.title)
+                    .setArtist(track.artist)
+                    .setAlbumTitle(track.album)
+                    .setArtworkData(loadArtworkBytes(track), MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    .build()
+            )
+            .build()
 
     fun playInstant(single: Track) = playQueue(listOf(single), 0)
 
@@ -209,7 +217,7 @@ class PlayerRepository(private val context: Context) {
     /**
      * Fetches artwork bytes for the media notification:
      * content:// for local albums, https for Jamendo images.
-     * Runs on IO; safe to call per-enqueue.
+     * Must be called off the main thread (playQueue does this).
      */
     private fun loadArtworkBytes(track: Track): ByteArray? {
         return try {
