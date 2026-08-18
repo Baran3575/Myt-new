@@ -7,6 +7,7 @@ import com.myt.player.data.model.toDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -34,8 +35,7 @@ class LibraryStore(private val context: Context) {
     fun recents(): List<Track> = readTracks("recent.json")
 
     suspend fun addRecent(track: Track) = withContext(Dispatchers.IO) {
-        val list = recents().toMutableList().filterNot { it.id == track.id }
-        list.add(0, track)
+        val list = listOf(track) + recents().filterNot { it.id == track.id }
         writeTracks("recent.json", list.take(50))
     }
 
@@ -45,8 +45,7 @@ class LibraryStore(private val context: Context) {
     fun downloads(): List<Track> = readTracks("downloads.json")
 
     suspend fun saveDownload(track: Track) = withContext(Dispatchers.IO) {
-        val list = downloads().toMutableList().filterNot { it.id == track.id }
-        list.add(0, track.copy(isDownloaded = true))
+        val list = listOf(track.copy(isDownloaded = true)) + downloads().filterNot { it.id == track.id }
         writeTracks("downloads.json", list)
     }
 
