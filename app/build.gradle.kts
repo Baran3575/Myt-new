@@ -11,6 +11,11 @@ val keystorePass: String? = (project.findProperty("MYT_KEYSTORE_PASS") as String
 val keyAlias: String? = (project.findProperty("MYT_KEY_ALIAS") as String?)?.takeIf { it.isNotBlank() }
 val keyPass: String? = (project.findProperty("MYT_KEY_PASS") as String?)?.takeIf { it.isNotBlank() }
 
+// Sign the release build only when the full keystore info is present;
+// otherwise fall back to debug signing so builds never break locally.
+val hasReleaseSigning = keystorePath != null && keystorePass != null && keyAlias != null && keyPass != null
+println("Myt: release signing = $hasReleaseSigning (path=${keystorePath != null}, pass=${keystorePass != null}, alias=${keyAlias != null}, keyPass=${keyPass != null})")
+
 android {
     namespace = "com.myt.player"
     compileSdk = 35
@@ -31,8 +36,8 @@ android {
 
     signingConfigs {
         create("release") {
-            if (keystorePath != null && keystorePass != null && keyAlias != null && keyPass != null) {
-                storeFile = file(keystorePath)
+            if (hasReleaseSigning) {
+                storeFile = file(keystorePath!!)
                 storePassword = keystorePass
                 keyAlias = keyAlias
                 keyPassword = keyPass
@@ -44,7 +49,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = if (keystorePath != null) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
     }
 

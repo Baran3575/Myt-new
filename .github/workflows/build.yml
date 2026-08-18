@@ -34,23 +34,19 @@ jobs:
             -storepass mytstorepass \
             -keypass mytstorepass \
             -dname "CN=Myt, OU=Personal, O=Personal, L=City, S=State, C=US"
-          echo "Keystore created."
+          ls -la myt-release.keystore
 
-      - name: Configure signing + optional Jamendo key
+      - name: Build APKs
         env:
           JAMENDO_CLIENT_ID: ${{ secrets.JAMENDO_CLIENT_ID }}
         run: |
-          cat >> gradle.properties <<EOF
-          MYT_KEYSTORE_PATH=$GITHUB_WORKSPACE/myt-release.keystore
-          MYT_KEYSTORE_PASS=mytstorepass
-          MYT_KEY_ALIAS=myt
-          MYT_KEY_PASS=mytstorepass
-          MYT_JAMENDO_CLIENT_ID=$JAMENDO_CLIENT_ID
-          EOF
           chmod +x gradlew
-
-      - name: Build APKs
-        run: ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleRelease assembleDebug --no-daemon --stacktrace \
+            -PMYT_KEYSTORE_PATH="$GITHUB_WORKSPACE/myt-release.keystore" \
+            -PMYT_KEYSTORE_PASS=mytstorepass \
+            -PMYT_KEY_ALIAS=myt \
+            -PMYT_KEY_PASS=mytstorepass \
+            -PMYT_JAMENDO_CLIENT_ID="$JAMENDO_CLIENT_ID"
 
       - name: Upload APKs
         uses: actions/upload-artifact@v4
