@@ -8,13 +8,13 @@ plugins {
 // Optional signing properties, injected by the CI workflow (or set locally).
 val keystorePath: String? = (project.findProperty("MYT_KEYSTORE_PATH") as String?)?.takeIf { it.isNotBlank() }
 val keystorePass: String? = (project.findProperty("MYT_KEYSTORE_PASS") as String?)?.takeIf { it.isNotBlank() }
-val keyAlias: String? = (project.findProperty("MYT_KEY_ALIAS") as String?)?.takeIf { it.isNotBlank() }
-val keyPass: String? = (project.findProperty("MYT_KEY_PASS") as String?)?.takeIf { it.isNotBlank() }
+val keystoreAlias: String? = (project.findProperty("MYT_KEY_ALIAS") as String?)?.takeIf { it.isNotBlank() }
+val keystoreKeyPass: String? = (project.findProperty("MYT_KEY_PASS") as String?)?.takeIf { it.isNotBlank() }
 
 // Sign the release build only when the full keystore info is present;
 // otherwise fall back to debug signing so builds never break locally.
-val hasReleaseSigning = keystorePath != null && keystorePass != null && keyAlias != null && keyPass != null
-println("Myt: release signing = $hasReleaseSigning (path=${keystorePath != null}, pass=${keystorePass != null}, alias=${keyAlias != null}, keyPass=${keyPass != null})")
+val hasReleaseSigning = keystorePath != null && keystorePass != null && keystoreAlias != null && keystoreKeyPass != null
+println("Myt: release signing = $hasReleaseSigning (path=${keystorePath != null}, pass=${keystorePass != null}, alias=${keystoreAlias != null}, keyPass=${keystoreKeyPass != null})")
 
 android {
     namespace = "com.myt.player"
@@ -39,8 +39,8 @@ android {
             if (hasReleaseSigning) {
                 storeFile = file(keystorePath!!)
                 storePassword = keystorePass
-                keyAlias = keyAlias
-                keyPassword = keyPass
+                keyAlias = keystoreAlias
+                keyPassword = keystoreKeyPass
             }
         }
     }
