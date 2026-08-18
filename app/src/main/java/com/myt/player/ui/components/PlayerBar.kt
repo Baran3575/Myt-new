@@ -41,7 +41,7 @@ fun PlayerBar(onOpen: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-            .clip(RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp))
+            .padding(top = 1.dp)
             .clickable(onClick = onOpen)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically

@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Pause
@@ -43,22 +43,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myt.player.AppState
 import com.myt.player.data.model.TrackSource
 import com.myt.player.ui.components.Artwork
 import com.myt.player.ui.components.formatMs
+import com.myt.player.ui.components.GreenPlayButton
 import com.myt.player.ui.theme.MytGreen
 
-/** Full-screen "now playing" view, Spotify-style. */
+/** Full-screen "now playing", laid out like the popular streaming apps. */
 @Composable
 fun NowPlayingScreen(onBack: () -> Unit) {
     val state by AppState.player.state.collectAsStateWithLifecycle()
     val track = state.currentTrack ?: run {
-        // Nothing loaded yet: keep a placeholder layout.
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -89,48 +89,59 @@ fun NowPlayingScreen(onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = 26.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(6.dp))
             IconButton(onClick = onBack) {
                 Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
             }
 
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(14.dp))
 
+            // Album art, centered and round-ish like the originals
             Artwork(
                 uri = track.artworkUri,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f),
-                cornerRadius = 14
+                cornerRadius = 12
             )
 
-            Spacer(Modifier.height(28.dp))
+            Spacer(Modifier.height(30.dp))
 
-            Text(
-                text = track.title,
-                style = MaterialTheme.typography.headlineSmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = track.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = track.album,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            // Title + heart on the same row (like the classics)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = track.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = track.artist,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(onClick = { AppState.toggleFavorite(track) }) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(14.dp))
 
             // Seek bar with times
             SeekBarWidget(
@@ -154,9 +165,9 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                 )
             }
 
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(18.dp))
 
-            // Controls
+            // Controls: shuffle - prev - play - next - repeat
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -166,7 +177,8 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                     Icon(
                         Icons.Rounded.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (state.shuffleOn) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (state.shuffleOn) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(26.dp)
                     )
                 }
                 IconButton(onClick = { AppState.player.previous() }) {
@@ -177,19 +189,12 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                         modifier = Modifier.size(44.dp)
                     )
                 }
-                IconButton(
+                GreenPlayButton(
                     onClick = { AppState.player.togglePlayPause() },
-                    modifier = Modifier
-                        .size(76.dp)
-                        .background(MytGreen, androidx.compose.foundation.shape.CircleShape)
-                ) {
-                    Icon(
-                        imageVector = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                        contentDescription = if (state.isPlaying) "Pause" else "Play",
-                        tint = Color(0xFF04180C),
-                        modifier = Modifier.size(44.dp)
-                    )
-                }
+                    modifier = Modifier.size(78.dp),
+                    size = 60,
+                    icon = if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow
+                )
                 IconButton(onClick = { AppState.player.next() }) {
                     Icon(
                         Icons.Rounded.SkipNext,
@@ -206,28 +211,20 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                             2 -> MytGreen
                             1 -> MytGreen.copy(alpha = 0.6f)
                             else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        }
+                        },
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(18.dp))
 
-            // Actions row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { AppState.toggleFavorite(track) }) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (isFavorite) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-                if (track.source == TrackSource.ONLINE) {
+            if (track.source == TrackSource.ONLINE) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = { AppState.startDownload(track) }) {
                         Icon(
                             imageVector = Icons.Rounded.Download,
@@ -236,10 +233,15 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                             modifier = Modifier.size(26.dp)
                         )
                     }
+                    Text(
+                        text = "Download",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
-            Spacer(Modifier.height(40.dp))
+            Spacer(Modifier.height(50.dp))
         }
     }
 }

@@ -51,6 +51,7 @@ import com.myt.player.data.model.Album
 import com.myt.player.data.model.Track
 import com.myt.player.ui.components.Artwork
 import com.myt.player.ui.components.EmptyState
+import com.myt.player.ui.components.GreenPlayButton
 import com.myt.player.ui.components.SectionHeader
 import com.myt.player.ui.components.TrackRow
 import com.myt.player.ui.theme.MytGreen
@@ -239,12 +240,21 @@ private fun AlbumCard(album: Album, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Artwork(
-            uri = album.artworkUri,
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-        )
+        Box {
+            Artwork(
+                uri = album.artworkUri,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+            )
+            GreenPlayButton(
+                onClick = onClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp),
+                size = 36
+            )
+        }
         Spacer(Modifier.height(6.dp))
         Text(
             text = album.title,

@@ -1,8 +1,6 @@
 package com.myt.player.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,15 +27,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myt.player.AppState
-import com.myt.player.data.online.JamendoClient
-import com.myt.player.ui.components.CardCarousel
+import com.myt.player.data.model.Track
+import com.myt.player.ui.components.GreenPlayButton
+import com.myt.player.ui.components.MixCard
 import com.myt.player.ui.components.SectionHeader
+import com.myt.player.ui.components.SquareCard
+import com.myt.player.ui.components.TwoColumnGrid
 import com.myt.player.ui.theme.MytGreen
 import java.time.LocalTime
 
 @Composable
 fun HomeScreen(
-    onPlay: (List<com.myt.player.data.model.Track>, Int) -> Unit
+    onPlay: (List<Track>, Int) -> Unit
 ) {
     val recents by AppState.recents.collectAsStateWithLifecycle()
     val localTracks by AppState.localTracks.collectAsStateWithLifecycle()
@@ -48,16 +49,17 @@ fun HomeScreen(
     val favorites = remember(favoriteIds, localTracks, downloads, featured) {
         (localTracks + downloads + featured).filter { favoriteIds.contains(it.id) }
     }
-    val mixSource = remember(favorites, recents) {
-        favorites.ifEmpty { recents }
-    }
+    val recentsForGrid = recents.take(6)
+    val favoritesForGrid = favorites.take(6)
+    val downloadsForGrid = downloads.take(6)
+    val onlineForGrid = featured.take(10)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 130.dp)
     ) {
         item {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                 Text(
                     text = greeting(),
                     style = MaterialTheme.typography.titleMedium,
@@ -71,53 +73,86 @@ fun HomeScreen(
         }
 
         item {
-            HeroCard(mixSource = mixSource, onPlay = onPlay)
-            Spacer(Modifier.height(8.dp))
+            HeroMixCard(mixSource = favorites.ifEmpty { recents }, onPlay = onPlay)
+            Spacer(Modifier.height(10.dp))
         }
 
-        if (recents.isNotEmpty()) {
+        if (recentsForGrid.isNotEmpty()) {
             item { SectionHeader("Recently played") }
             item {
-                CardCarousel(
-                    tracks = recents,
-                    onPlay = onPlay,
-                    emptyText = ""
-                )
+                TwoColumnGrid(recentsForGrid) { track, modifier ->
+                    MixCard(
+                        title = track.title,
+                        subtitle = track.artist,
+                        artworkUri = track.artworkUri,
+                        onClick = {
+                            val list = recents
+                            onPlay(list, list.indexOf(track).takeIf { it >= 0 } ?: 0)
+                        },
+                        modifier = modifier
+                    )
+                }
             }
         }
 
-        if (favorites.isNotEmpty()) {
+        if (favoritesForGrid.isNotEmpty()) {
             item { SectionHeader("Your favorites") }
             item {
-                CardCarousel(
-                    tracks = favorites,
-                    onPlay = onPlay,
-                    emptyText = ""
-                )
+                TwoColumnGrid(favoritesForGrid) { track, modifier ->
+                    MixCard(
+                        title = track.title,
+                        subtitle = track.artist,
+                        artworkUri = track.artworkUri,
+                        onClick = {
+                            val list = favorites
+                            onPlay(list, list.indexOf(track).takeIf { it >= 0 } ?: 0)
+                        },
+                        modifier = modifier
+                    )
+                }
             }
         }
 
-        if (downloads.isNotEmpty()) {
+        if (downloadsForGrid.isNotEmpty()) {
             item { SectionHeader("Downloads") }
             item {
-                CardCarousel(
-                    tracks = downloads,
-                    onPlay = onPlay,
-                    emptyText = ""
-                )
+                TwoColumnGrid(downloadsForGrid) { track, modifier ->
+                    MixCard(
+                        title = track.title,
+                        subtitle = track.artist,
+                        artworkUri = track.artworkUri,
+                        onClick = {
+                            val list = downloads
+                            onPlay(list, list.indexOf(track).takeIf { it >= 0 } ?: 0)
+                        },
+                        modifier = modifier
+                    )
+                }
             }
         }
 
         item { SectionHeader("Featured online") }
         item {
-            if (JamendoClient.isConfigured) {
-                CardCarousel(
-                    tracks = featured,
-                    onPlay = onPlay,
-                    emptyText = "Could not load featured tracks right now."
-                )
+            if (AppState.hasOnlineMusic && onlineForGrid.isNotEmpty()) {
+                TwoColumnGrid(onlineForGrid) { track, modifier ->
+                    SquareCard(
+                        track = track,
+                        onClick = {
+                            val list = onlineForGrid
+                            onPlay(list, list.indexOf(track).takeIf { it >= 0 } ?: 0)
+                        },
+                        modifier = modifier
+                    )
+                }
+            } else if (!AppState.hasOnlineMusic) {
+                OnlineSetupHint()
             } else {
-                JamendoHintCard()
+                Text(
+                    text = "Could not load featured tracks right now.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
             }
         }
     }
@@ -133,30 +168,32 @@ private fun greeting(): String {
 }
 
 @Composable
-private fun HeroCard(
-    mixSource: List<com.myt.player.data.model.Track>,
-    onPlay: (List<com.myt.player.data.model.Track>, Int) -> Unit
+private fun HeroMixCard(
+    mixSource: List<Track>,
+    onPlay: (List<Track>, Int) -> Unit
 ) {
     Box(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .height(120.dp)
+            .height(150.dp)
             .background(
-                Brush.linearGradient(listOf(MytGreen, Color(0xFF0A3D20))),
+                Brush.linearGradient(
+                    listOf(MytGreen, Color(0xFF0A3D20))
+                ),
                 RoundedCornerShape(12.dp)
             )
-            .clickable {
-                if (mixSource.isNotEmpty()) onPlay(mixSource, 0)
-            },
-        contentAlignment = Alignment.BottomStart
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(
+            Modifier
+                .align(Alignment.BottomStart)
+                .padding(18.dp)
+        ) {
             Icon(
                 imageVector = Icons.Rounded.MusicNote,
                 contentDescription = null,
-                tint = Color.Black.copy(alpha = 0.6f),
-                modifier = Modifier.height(24.dp)
+                tint = Color(0xFF04180C).copy(alpha = 0.65f),
+                modifier = Modifier.height(22.dp)
             )
             Text(
                 text = "Your Mix",
@@ -165,38 +202,49 @@ private fun HeroCard(
                 color = Color(0xFF04180C)
             )
             Text(
-                text = if (mixSource.isNotEmpty()) "${mixSource.size} songs • tap to play" else "No favorites yet",
+                text = if (mixSource.isNotEmpty())
+                    "${mixSource.size} songs • favorites + recents"
+                else "Tap to explore",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF04180C).copy(alpha = 0.8f)
             )
         }
+        GreenPlayButton(
+            onClick = { if (mixSource.isNotEmpty()) onPlay(mixSource, 0) },
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 15.dp),
+            size = 56
+        )
     }
 }
 
 @Composable
-private fun JamendoHintCard() {
+private fun OnlineSetupHint() {
     Row(
         modifier = Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
             .padding(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Rounded.MusicNote,
             contentDescription = null,
             tint = MytGreen
         )
+        Spacer(Modifier.width(10.dp))
         Column {
             Text(
                 text = "Online music is inactive",
                 style = MaterialTheme.typography.titleMedium
             )
             Text(
-                text = "Get a free Jamendo API key at devs.jamendo.com and set it as the " +
-                    "MYT_JAMENDO_CLIENT_ID Gradle property (or GitHub secret). Local music works already.",
+                text = "Free keys are needed (add both to get the best catalog):\n" +
+                    "• Jamendo: devs.jamendo.com → JAMENDO_CLIENT_ID secret\n" +
+                    "• Pixabay Music: pixabay.com/api/docs → PIXABAY_API_KEY secret\n" +
+                    "Rebuild via Actions after adding. Local music already works.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

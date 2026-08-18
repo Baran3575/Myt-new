@@ -6,11 +6,12 @@ import com.myt.player.data.local.LocalMusicRepository
 import com.myt.player.data.model.Album
 import com.myt.player.data.model.Track
 import com.myt.player.data.online.Downloader
-import com.myt.player.data.online.JamendoClient
+import com.myt.player.data.online.configuredProviders
 import com.myt.player.playback.PlayerRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -68,6 +69,9 @@ object AppState {
 
     fun hasMediaPermission(): Boolean = localRepo.hasPermission()
 
+    /** True when at least one online music provider is configured. */
+    val hasOnlineMusic: Boolean get() = configuredProviders().isNotEmpty()
+
     /** Re-scans the device MediaStore. Does nothing without permission. */
     fun scanLibrary() {
         scope.launch {
@@ -78,9 +82,13 @@ object AppState {
     }
 
     fun loadFeatured() {
-        if (!JamendoClient.isConfigured) return
+        val providers = configuredProviders()
+        if (providers.isEmpty()) return
         scope.launch {
-            _featured.value = JamendoClient.featured(limit = 24)
+            val results = providers.map { provider ->
+                async { provider.featured(limit = 12) }
+            }.flatMap { it.await() }
+            _featured.value = results.distinctBy { it.id }.take(60)
         }
     }
 
@@ -132,12 +140,20 @@ object AppState {
     }
 
     fun searchOnline(query: String) {
-        if (!JamendoClient.isConfigured || query.isBlank()) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList()
+            return
+        }
+        val providers = configuredProviders()
+        if (providers.isEmpty()) {
             _searchResults.value = emptyList()
             return
         }
         scope.launch {
-            _searchResults.value = JamendoClient.search(query.trim(), limit = 40)
+            val results = providers.map { provider ->
+                async { provider.search(query.trim(), limit = 30) }
+            }.flatMap { it.await() }
+            _searchResults.value = results.distinctBy { it.id }.take(60)
         }
     }
 }

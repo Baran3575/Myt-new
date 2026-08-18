@@ -5,10 +5,13 @@ downloads royalty-free music, and plays the songs already on your phone.
 
 ## Features
 
-- **Spotify-type UI** — dark theme, mini player bar, full-screen now playing view
+- **Spotify-style UI** — dark theme, "good evening" home grid, category tiles,
+  mini player bar, full-screen now playing with artwork + seekbar
 - **On-device music** — scans MediaStore: tracks, albums, artwork, favorites
-- **Online backend** — search, stream and download thousands of royalty-free
-  (Creative Commons) tracks via the [Jamendo API](https://devs.jamendo.com)
+- **Online backend** — search, stream and download royalty-free tracks from
+  two providers:
+  - [Jamendo](https://devs.jamendo.com) — thousands of CC-licensed tracks
+  - [Pixabay Music](https://pixabay.com/api/docs/) — professional stock music
 - **Live notification** — foreground media notification with album art and
   play / pause / next / prev / seek controls, powered by AndroidX Media3
 - **Downloads** — saved into the app's Music folder with a progress notification
@@ -28,10 +31,14 @@ so every build is directly installable.
 
 ## Optional: enable online music
 
-1. Get a free API key at https://devs.jamendo.com (a few minutes).
-2. Add it as a repository secret named `JAMENDO_CLIENT_ID`
-   (repo → Settings → Secrets and variables → Actions).
-3. Re-run the workflow. Without a key, the app still works fully for on-device music.
+Free API keys (add either or both; more providers = better catalog):
+
+1. **Jamendo** — https://devs.jamendo.com → repo secret `JAMENDO_CLIENT_ID`
+2. **Pixabay Music** — https://pixabay.com/api/docs/ (key shown on the page)
+   → repo secret `PIXABAY_API_KEY`
+
+Then re-run the workflow. The app merges results from all configured providers.
+Without keys, the app still works fully for on-device music.
 
 ## Building locally
 

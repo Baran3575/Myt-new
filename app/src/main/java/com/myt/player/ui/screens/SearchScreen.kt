@@ -2,6 +2,7 @@ package com.myt.player.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,12 +23,11 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,18 +47,37 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myt.player.AppState
 import com.myt.player.data.model.Track
 import com.myt.player.data.model.TrackSource
-import com.myt.player.data.online.JamendoClient
+import com.myt.player.ui.components.CategoryCard
 import com.myt.player.ui.components.EmptyState
+import com.myt.player.ui.components.SectionHeader
 import com.myt.player.ui.components.TrackRow
 import com.myt.player.ui.theme.MytGreen
 import kotlinx.coroutines.delay
+
+/** Spotlight-style category tiles: tapping one starts an online search. */
+private data class Category(val label: String, val colors: List<Color>)
+
+private val categories = listOf(
+    Category("Chill", listOf(Color(0xFF27856A), Color(0xFF0E3E33))),
+    Category("Focus", listOf(Color(0xFF8E66AC), Color(0xFF543680))),
+    Category("Workout", listOf(Color(0xFFE13300), Color(0xFF7A1B00))),
+    Category("Party", listOf(Color(0xFFD84000), Color(0xFF6E2600))),
+    Category("Sleep", listOf(Color(0xFF2E5771), Color(0xFF172F3D))),
+    Category("Travel", listOf(Color(0xFF0D73EC), Color(0xFF053C7A))),
+    Category("Gaming", listOf(Color(0xFFE91429), Color(0xFF6E0913))),
+    Category("Lofi", listOf(Color(0xFF8D67AB), Color(0xFF3E2A4E))),
+    Category("Rock", listOf(Color(0xFF283891), Color(0xFF120F2E))),
+    Category("Pop", listOf(Color(0xFF1E3264), Color(0xFF0D1B33))),
+    Category("Jazz", listOf(Color(0xFFBA5D07), Color(0xFF4A2603))),
+    Category("Hip Hop", listOf(Color(0xFF503750), Color(0xFF251425)))
+)
 
 @Composable
 fun SearchScreen(
     onPlay: (List<Track>, Int) -> Unit
 ) {
     var query by rememberSaveable { mutableStateOf("") }
-    var tab by remember { mutableIntStateOf(0) }
+    var tab by remember { mutableIntStateOf(0) } // 0 = device, 1 = online
 
     val localTracks by AppState.localTracks.collectAsStateWithLifecycle()
     val onlineResults by AppState.searchResults.collectAsStateWithLifecycle()
@@ -75,7 +93,7 @@ fun SearchScreen(
         }
     }
 
-    LaunchedEffect(query) {
+    LaunchedEffect(query, tab) {
         if (tab == 1 && query.isNotBlank()) {
             delay(350)
             AppState.searchOnline(query)
@@ -84,68 +102,101 @@ fun SearchScreen(
 
     Column(Modifier.fillMaxSize()) {
         // Search field
-        Row(
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = { query = it },
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(24.dp)),
-                placeholder = { Text("What do you want to listen to?") },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (query.isNotEmpty()) {
-                        IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Rounded.Clear, contentDescription = "Clear")
-                        }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .clip(RoundedCornerShape(24.dp)),
+            placeholder = { Text("What do you want to listen to?") },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(onClick = { query = "" }) {
+                        Icon(Icons.Rounded.Clear, contentDescription = "Clear")
                     }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { if (tab == 1) AppState.searchOnline(query) }),
-                shape = RoundedCornerShape(24.dp)
-            )
-        }
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                if (tab == 1) AppState.searchOnline(query)
+            }),
+            shape = RoundedCornerShape(24.dp)
+        )
 
-        // Device / Online tabs
-        TabRow(
-            selectedTabIndex = tab,
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.primary
+        // Scope chips
+        Row(
+            Modifier.padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Tab(
+            FilterChip(
                 selected = tab == 0,
                 onClick = { tab = 0 },
-                text = { Text("On device") }
+                label = { Text("On device") }
             )
-            Tab(
+            FilterChip(
                 selected = tab == 1,
                 onClick = { tab = 1 },
-                text = { Text("Online") }
+                label = { Text("Online") }
             )
         }
 
-        Spacer(Modifier.size(0.dp))
+        Spacer(Modifier.size(6.dp))
 
-        when (tab) {
-            0 -> {
-                if (!AppState.hasMediaPermission() || localTracks.isEmpty()) {
-                    EmptyState(
-                        if (AppState.hasMediaPermission())
-                            "Nothing found. Allow music access in Library if songs are missing."
-                        else "Music permission needed — grant it in the Library tab."
-                    )
-                } else if (query.isBlank()) {
-                    EmptyState("Type to search your device library.")
-                } else if (localMatches.isEmpty()) {
-                    EmptyState("No local matches for \"$query\"")
-                } else {
-                    LazyColumn(Modifier.fillMaxSize()) {
+        when {
+            query.isBlank() && tab == 0 -> {
+                SectionHeader("Browse all")
+                LazyColumn(
+                    Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 130.dp)
+                ) {
+                    items(categories.size) { index ->
+                        val inner = categories[index]
+                        val next = if (index + 1 < categories.size) categories[index + 1] else null
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 5.dp)
+                        ) {
+                            CategoryCard(
+                                label = inner.label,
+                                colors = inner.colors,
+                                onClick = {
+                                    tab = 1
+                                    query = inner.label
+                                    AppState.searchOnline(inner.label)
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (next != null) {
+                                Spacer(Modifier.width(12.dp))
+                                CategoryCard(
+                                    label = next.label,
+                                    colors = next.colors,
+                                    onClick = {
+                                        tab = 1
+                                        query = next.label
+                                        AppState.searchOnline(next.label)
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            } else {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
+
+            tab == 0 -> {
+                when {
+                    localMatches.isEmpty() && query.isNotBlank() ->
+                        EmptyState("No local matches for \"$query\"")
+                    !AppState.hasMediaPermission() || localTracks.isEmpty() ->
+                        EmptyState("Nothing found. Allow music access in the Library tab.")
+                    else -> LazyColumn(Modifier.fillMaxSize()) {
                         items(localMatches.size) { i ->
                             val track = localMatches[i]
                             TrackRow(
@@ -158,18 +209,17 @@ fun SearchScreen(
                 }
             }
 
-            1 -> {
-                if (!JamendoClient.isConfigured) {
-                    EmptyState(
-                        "Online search needs a free Jamendo API key.\n" +
-                            "Get one at devs.jamendo.com and rebuild with MYT_JAMENDO_CLIENT_ID."
-                    )
-                } else if (query.isBlank()) {
-                    EmptyState("Type to search royalty-free music online.")
-                } else if (onlineResults.isEmpty()) {
-                    EmptyState("Searching… or no results.")
-                } else {
-                    LazyColumn(Modifier.fillMaxSize()) {
+            else -> {
+                when {
+                    !AppState.hasOnlineMusic ->
+                        EmptyState(
+                            "Online music needs free API keys.\n" +
+                                "Add JAMENDO_CLIENT_ID (devs.jamendo.com) and/or\n" +
+                                "PIXABAY_API_KEY (pixabay.com/api/docs) as GitHub secrets."
+                        )
+                    query.isBlank() -> EmptyState("Type to search royalty-free music online.")
+                    onlineResults.isEmpty() -> EmptyState("Searching… or no results.")
+                    else -> LazyColumn(Modifier.fillMaxSize()) {
                         items(onlineResults.size) { i ->
                             val track = onlineResults[i]
                             TrackRow(

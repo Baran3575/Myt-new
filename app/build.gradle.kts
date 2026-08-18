@@ -27,11 +27,15 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        // Free key from https://devs.jamendo.com (set MYT_JAMENDO_CLIENT_ID in gradle.properties
-        // or as a GitHub Actions secret). Leave empty to run with local music only.
+        // Free keys (all optional, local music works without them):
+        //  - MYT_JAMENDO_CLIENT_ID from https://devs.jamendo.com
+        //  - MYT_PIXABAY_API_KEY from https://pixabay.com/api/docs/
         val jamendoClientId: String = (project.findProperty("MYT_JAMENDO_CLIENT_ID") as String?)
             ?.takeIf { it.isNotBlank() } ?: ""
+        val pixabayApiKey: String = (project.findProperty("MYT_PIXABAY_API_KEY") as String?)
+            ?.takeIf { it.isNotBlank() } ?: ""
         buildConfigField("String", "JAMENDO_CLIENT_ID", "\"$jamendoClientId\"")
+        buildConfigField("String", "PIXABAY_API_KEY", "\"$pixabayApiKey\"")
     }
 
     signingConfigs {
