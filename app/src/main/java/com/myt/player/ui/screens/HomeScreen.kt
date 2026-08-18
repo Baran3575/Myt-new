@@ -37,7 +37,7 @@ import java.time.LocalTime
 
 @Composable
 fun HomeScreen(
-    onPlay: (com.myt.player.data.model.Track) -> Unit
+    onPlay: (List<com.myt.player.data.model.Track>, Int) -> Unit
 ) {
     val recents by AppState.recents.collectAsStateWithLifecycle()
     val localTracks by AppState.localTracks.collectAsStateWithLifecycle()
@@ -80,7 +80,7 @@ fun HomeScreen(
             item {
                 CardCarousel(
                     tracks = recents,
-                    onPlay = { list, index -> play(list, index, onPlay) },
+                    onPlay = onPlay,
                     emptyText = ""
                 )
             }
@@ -91,7 +91,7 @@ fun HomeScreen(
             item {
                 CardCarousel(
                     tracks = favorites,
-                    onPlay = { list, index -> play(list, index, onPlay) },
+                    onPlay = onPlay,
                     emptyText = ""
                 )
             }
@@ -102,7 +102,7 @@ fun HomeScreen(
             item {
                 CardCarousel(
                     tracks = downloads,
-                    onPlay = { list, index -> play(list, index, onPlay) },
+                    onPlay = onPlay,
                     emptyText = ""
                 )
             }
@@ -113,7 +113,7 @@ fun HomeScreen(
             if (JamendoClient.isConfigured) {
                 CardCarousel(
                     tracks = featured,
-                    onPlay = { list, index -> play(list, index, onPlay) },
+                    onPlay = onPlay,
                     emptyText = "Could not load featured tracks right now."
                 )
             } else {
@@ -121,10 +121,6 @@ fun HomeScreen(
             }
         }
     }
-}
-
-private fun play(tracks: List<com.myt.player.data.model.Track>, index: Int, onPlay: (com.myt.player.data.model.Track) -> Unit) {
-    onPlay(tracks[index])
 }
 
 private fun greeting(): String {
@@ -139,7 +135,7 @@ private fun greeting(): String {
 @Composable
 private fun HeroCard(
     mixSource: List<com.myt.player.data.model.Track>,
-    onPlay: (com.myt.player.data.model.Track) -> Unit
+    onPlay: (List<com.myt.player.data.model.Track>, Int) -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -151,7 +147,7 @@ private fun HeroCard(
                 RoundedCornerShape(12.dp)
             )
             .clickable {
-                if (mixSource.isNotEmpty()) onPlay(mixSource.first())
+                if (mixSource.isNotEmpty()) onPlay(mixSource, 0)
             },
         contentAlignment = Alignment.BottomStart
     ) {

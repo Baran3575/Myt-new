@@ -52,8 +52,6 @@ fun MytRoot() {
         navController.navigate(Routes.NOW_PLAYING)
     }
 
-    val playSingle: (Track) -> Unit = { track -> playQueue(listOf(track), 0) }
-
     Scaffold(
         containerColor = com.myt.player.ui.theme.BackgroundBlack,
         bottomBar = {
@@ -81,7 +79,9 @@ fun MytRoot() {
                 navController = navController,
                 startDestination = Routes.HOME
             ) {
-                composable(Routes.HOME) { HomeScreen(onPlay = playSingle) }
+                composable(Routes.HOME) {
+                    HomeScreen(onPlay = { tracks, index -> playQueue(tracks, index) })
+                }
                 composable(Routes.SEARCH) {
                     SearchScreen(onPlay = { tracks, index -> playQueue(tracks, index) })
                 }
