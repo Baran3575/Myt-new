@@ -4,6 +4,7 @@ import android.content.Context
 import com.myt.player.data.model.Track
 import com.myt.player.data.model.TrackDto
 import com.myt.player.data.model.toDto
+import com.myt.player.data.model.toTrack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer

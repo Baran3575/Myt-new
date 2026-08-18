@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Favorite
@@ -215,7 +216,7 @@ private fun DownloadButton(track: Track, downloading: Boolean) {
         contentAlignment = Alignment.Center
     ) {
         Icon(
-            imageVector = if (downloading) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
+            imageVector = if (downloading) Icons.Rounded.Check else Icons.Rounded.Download,
             contentDescription = if (downloading) "Downloading" else "Download",
             tint = if (downloading) MytGreen else if (canDownload) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(22.dp)

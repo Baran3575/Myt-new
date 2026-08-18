@@ -58,7 +58,7 @@ class PlayerRepository(private val context: Context) {
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
             val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-            controller = MediaController.Builder(context, token).buildAsync().also { future ->
+            MediaController.Builder(context, token).buildAsync().also { future ->
                 future.addListener({
                     val c = future.get()
                     // Attach on the main thread so all controller calls stay consistent.
@@ -189,7 +189,7 @@ class PlayerRepository(private val context: Context) {
 
     fun togglePlayPause() {
         val c = controller ?: return
-        if (c.playbackState == Player.STATE_IDLE || c.playlist.isEmpty()) return
+        if (c.playbackState == Player.STATE_IDLE || c.mediaItemCount == 0) return
         if (c.isPlaying) c.pause() else c.play()
     }
 
