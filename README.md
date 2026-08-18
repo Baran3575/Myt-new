@@ -14,6 +14,9 @@ downloads royalty-free music, and plays the songs already on your phone.
   - [Pixabay Music](https://pixabay.com/api/docs/) — professional stock music
 - **Live notification** — foreground media notification with album art and
   play / pause / next / prev / seek controls, powered by AndroidX Media3
+- **Video visuals** — while a track plays, the now-playing screen shows a
+  muted, looping mp4 clip (Pixabay Videos, CC-licensed) matched to the
+  track name; toggle it with the camera button
 - **Downloads** — saved into the app's Music folder with a progress notification
 
 ## Building with GitHub Actions (recommended)

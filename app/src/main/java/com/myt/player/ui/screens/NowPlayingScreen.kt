@@ -27,6 +27,8 @@ import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material.icons.rounded.Videocam
+import androidx.compose.material.icons.rounded.VideocamOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,9 +51,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.myt.player.AppState
 import com.myt.player.data.model.TrackSource
+import com.myt.player.data.online.PixabayVideoClient
 import com.myt.player.ui.components.Artwork
-import com.myt.player.ui.components.formatMs
 import com.myt.player.ui.components.GreenPlayButton
+import com.myt.player.ui.components.VideoBackground
+import com.myt.player.ui.components.formatMs
 import com.myt.player.ui.theme.MytGreen
 
 /** Full-screen "now playing", laid out like the popular streaming apps. */
@@ -75,6 +79,8 @@ fun NowPlayingScreen(onBack: () -> Unit) {
 
     val favoriteIds by AppState.favorites.collectAsStateWithLifecycle()
     val isFavorite = favoriteIds.contains(track.id)
+    val videoClip by AppState.videoClip.collectAsStateWithLifecycle()
+    val visualsOn by AppState.visualsOn.collectAsStateWithLifecycle()
 
     Box(
         modifier = Modifier
@@ -85,6 +91,24 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                 )
             )
     ) {
+        // mp4 visual background (muted, looping) synced to the playing track
+        if (videoClip != null) {
+            VideoBackground(clip = videoClip, isPlaying = state.isPlaying)
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xCC0A0A0A),
+                                Color(0x99121212),
+                                Color(0xE6121212),
+                                Color(0xFF121212)
+                            )
+                        )
+                    )
+            )
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,8 +116,21 @@ fun NowPlayingScreen(onBack: () -> Unit) {
                 .padding(horizontal = 26.dp)
         ) {
             Spacer(Modifier.height(6.dp))
-            IconButton(onClick = onBack) {
-                Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                }
+                IconButton(onClick = { AppState.setVisualsOn(!visualsOn) }) {
+                    Icon(
+                        imageVector = if (visualsOn) Icons.Rounded.Videocam else Icons.Rounded.VideocamOff,
+                        contentDescription = "Visuals",
+                        tint = if (visualsOn) MytGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Spacer(Modifier.height(14.dp))

@@ -6,6 +6,8 @@ import com.myt.player.data.local.LocalMusicRepository
 import com.myt.player.data.model.Album
 import com.myt.player.data.model.Track
 import com.myt.player.data.online.Downloader
+import com.myt.player.data.online.PixabayVideoClient
+import com.myt.player.data.online.VideoClip
 import com.myt.player.data.online.configuredProviders
 import com.myt.player.playback.PlayerRepository
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +17,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 /**
@@ -57,6 +60,37 @@ object AppState {
     private val _searchResults = MutableStateFlow<List<Track>>(emptyList())
     val searchResults: StateFlow<List<Track>> = _searchResults.asStateFlow()
 
+    // ---- Video visuals (mp4 clip behind the now-playing screen) ----
+    private val _videoClip = MutableStateFlow<VideoClip?>(null)
+    val videoClip: StateFlow<VideoClip?> = _videoClip.asStateFlow()
+
+    private val _visualsOn = MutableStateFlow(true)
+    val visualsOn: StateFlow<Boolean> = _visualsOn.asStateFlow()
+
+    private var lastVisualTrackId: String? = null
+
+    private fun trackVisuals() {
+        // Watch playback; whenever the track changes, look up a matching clip.
+        scope.launch {
+            player.state.collect { state ->
+                val track = state.currentTrack
+                if (track != null && track.id != lastVisualTrackId) {
+                    lastVisualTrackId = track.id
+                    if (_visualsOn.value && PixabayVideoClient.isConfigured) {
+                        _videoClip.value = PixabayVideoClient.fetchForTrack(track)
+                    } else {
+                        _videoClip.value = null
+                    }
+                }
+            }
+        }
+    }
+
+    fun setVisualsOn(on: Boolean) {
+        _visualsOn.value = on
+        if (!on) _videoClip.value = null
+    }
+
     fun init(appContext: Context) {
         if (::context.isInitialized) return
         context = appContext.applicationContext
@@ -65,6 +99,7 @@ object AppState {
         _downloads.value = store.downloads()
         scanLibrary()
         loadFeatured()
+        trackVisuals()
     }
 
     fun hasMediaPermission(): Boolean = localRepo.hasPermission()
@@ -107,9 +142,7 @@ object AppState {
         val byId = HashMap<String, Track>()
         _localTracks.value.forEach { byId[it.id] = it }
         _downloads.value.forEach { byId[it.id] = it }
-        if (JamendoClient.isConfigured) {
-            _searchResults.value.forEach { byId[it.id] = it }
-        }
+        _searchResults.value.forEach { byId[it.id] = it }
         return fav.mapNotNull { byId[it] }
     }
 
